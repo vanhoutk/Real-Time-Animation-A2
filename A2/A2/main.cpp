@@ -47,6 +47,12 @@ int screenWidth = 1000;
 int screenHeight = 800;
 Mesh skyboxMesh, planeMesh;
 vec3 gravity = vec3(0.0f, -9.81f, 0.0f);
+vec3 upVector = vec3(0.0f, 0.0f, 1.0f);
+vec3 forwardVector = vec3(0.0f, 1.0f, 0.0f);
+vec3 leftVector = vec3(1.0f, 0.0f, 0.0f);
+vec3 origin = vec3(0.0f, 0.0f, 0.0f);
+versor yawQuat;
+versor rollQuat;
 //vec3 groundVector = vec3(0.0f, -1.0f, 0.0f);
 //vec3 groundNormal = vec3(0.0f, 1.0f, 0.0f);
 
@@ -66,6 +72,7 @@ GLfloat radians(GLfloat degrees)
 
 mat4 getRotationMatrix(GLfloat yawR, GLfloat pitchR, GLfloat rollR)
 {
+	// Tait-Bryan Angles ZYX
 	mat4 rotationMatrix = identity_mat4();
 	rotationMatrix.m[0] = cos(yawR) * cos(pitchR);
 	rotationMatrix.m[1] = sin(yawR) * cos(pitchR);
@@ -91,6 +98,7 @@ mat4 getRotationMatrix(GLfloat yawR, GLfloat pitchR, GLfloat rollR)
 	rotationMatrix.m[9] = -1 * cos(rollR) * sin(pitchR);
 	rotationMatrix.m[10] = (cos(yawR) * cos(pitchR) * cos(rollR)) - (sin(yawR) * sin(rollR));*/
 
+
 	return rotationMatrix;
 
 }
@@ -114,6 +122,69 @@ versor getQuaternion(GLfloat yawR, GLfloat pitchR, GLfloat rollR)
 	return q;
 }
 
+mat3 mat4to3(mat4 matrix)
+{
+	mat3 result = identity_mat3();
+	result.m[0] = matrix.m[0];
+	result.m[1] = matrix.m[1];
+	result.m[2] = matrix.m[2];
+
+	result.m[3] = matrix.m[4];
+	result.m[4] = matrix.m[5];
+	result.m[5] = matrix.m[6];
+
+	result.m[6] = matrix.m[8];
+	result.m[7] = matrix.m[9];
+	result.m[8] = matrix.m[10];
+
+	return result;
+}
+
+vec3 matbyvec(mat3 matrix, vec3 vector)
+{
+	vec3 result;
+	result.v[0] = vector.v[0] * matrix.m[0] + vector.v[1] * matrix.m[3] + vector.v[2] * matrix.m[6];
+	result.v[1] = vector.v[0] * matrix.m[1] + vector.v[1] * matrix.m[4] + vector.v[2] * matrix.m[7];
+	result.v[2] = vector.v[0] * matrix.m[2] + vector.v[1] * matrix.m[5] + vector.v[2] * matrix.m[8];
+	return result;
+}
+
+void applyYaw(GLfloat yawR, vec3 &up, vec3 &forward, vec3 &left)
+{
+	cout << "Yaw in degrees: " << yaw << endl;
+	cout << "Yaw in radians: " << yawR << endl;
+	versor result = quat_from_axis_rad(yawR, up.v[0], up.v[1], up.v[2]);
+	cout << "Versor: " << result.q[0] << "," << result.q[1] << "," << result.q[2] << "," << result.q[3] << endl;
+	/*forward.v[0] = cos(yawR);
+	forward.v[1] = 0.0f;
+	forward.v[2] = sin(yawR);
+	forward = normalise(forward);*/
+	cout << "Forward vector: " << forward.v[0] << "," << forward.v[1] << "," << forward.v[2] << endl;
+	mat4 rotation = quat_to_mat4(result);
+	mat3 rotation3 = mat4to3(rotation);
+	forward = matbyvec(rotation3, forward);
+	cout << "Forward vector: " << forward.v[0] << "," << forward.v[1] << "," << forward.v[2] << endl;
+	forward = normalise(forward);
+	cout << "Forward vector: " << forward.v[0] << "," << forward.v[1] << "," << forward.v[2] << endl;
+	// Also re-calculate the Right and Up vector
+	left = normalise(cross(forward, up));
+	return;
+}
+
+void applyRoll(GLfloat rollR, vec3 &up, vec3 &forward, vec3 &left)
+{
+	versor result = quat_from_axis_rad(rollR, forward.v[0], forward.v[1], forward.v[2]);
+	cout << "Versor: " << result.q[0] << "," << result.q[1] << "," << result.q[2] << "," << result.q[3] << endl;
+	mat4 rotation = quat_to_mat4(result);
+	mat3 rotation3 = mat4to3(rotation);
+	cout << "Up vector: " << up.v[0] << "," << up.v[1] << "," << up.v[2] << endl;
+	left = matbyvec(rotation3, left);
+	left = normalise(left);
+	// Also re-calculate the Right and Up vector
+	up = normalise(cross(forward, left));
+	return;
+}
+
 void display() 
 {
 	// Tell GL to only draw onto a pixel if the shape is closer to the viewer
@@ -129,15 +200,26 @@ void display()
 
 	skyboxMesh.drawSkybox(view, projection);
 
+	/*
+		(1, 0, 0, 0) = Identity
+		(0, 1, 0, 0) = Pitch 180
+		(0, 0, 1, 0) = Yaw 180
+		(0, 0, 0, 1) = Roll 180
+	 */
 	versor planeQuat1 = quat_from_axis_deg(0.0f, 0.0f, 1.0f, 1.0f);
 	versor planeQuat2 = getQuaternion(radians(yaw), radians(pitch), radians(roll));
 
-	mat4 rotation = quat_to_mat4(planeQuat1 * planeQuat2);
+	
+	
+	//versotr rollQuat = quat_from_axis_deg(roll, forwardVector.v[0], forwardVector.v[1], forwardVector.v[2]);
 
-	mat4 model = identity_mat4();
-	model = rotate_x_deg(model, -90.0f);
-	model = model * rotation;
-	//model = model * getRotationMatrix(radians(yaw), radians(pitch), radians(roll));
+	//mat4 rotation = quat_to_mat4(planeQuat1 * planeQuat2);
+	mat4 rotation = quat_to_mat4(rollQuat * yawQuat);
+
+	mat4 model = look_at(origin, origin + forwardVector, upVector);
+	//model = rotate_x_deg(model, -90.0f);
+	//model = model * rotation;
+	//model = model * getRotationMatrix(radians(yaw), radians(roll), radians(pitch));
 	
 
 	planeMesh.drawMesh(view, projection, model);
@@ -156,21 +238,22 @@ void processInput()
 		camera.ProcessKeyboard(LEFT, cameraSpeed);
 	if (keys[GLUT_KEY_RIGHT])
 		camera.ProcessKeyboard(RIGHT, cameraSpeed);
-	if (keys['a'])
-		roll -= 0.1f;
-	if (keys['s'])
-		roll += 0.1f;
-	if (keys['q'])
-		yaw -= 0.1f;
-	if (keys['w'])
-		yaw += 0.1f;
+
 	if (keys['z'])
-		pitch -= 0.1f;
+	{
+		pitch -= 0.5f;
+		if (pitch <= -90.0f)
+			pitch = -90.0f;
+	}
 	if (keys['x'])
-		pitch += 0.1f;
+	{
+		pitch += 0.5f;
+		if (pitch >= 90.0f)
+			pitch = 90.0f;
+	}
 	if (keys['p'])
 	{
-		cout << roll << " " << pitch << " " << yaw << endl;
+		cout << "Roll = " << roll << ", Pitch = " << pitch << ", Yaw = " << yaw << endl;
 	}
 	if (keys[(char)27])
 		exit(0);
@@ -181,6 +264,10 @@ void processInput()
 void updateScene()
 {
 	processInput();
+
+	
+	//versor yawQuat = quat_from_axis_deg(yaw, 0.0f, 0.0f, 1.0f);
+
 	// Draw the next frame
 	glutPostRedisplay();
 }
@@ -200,6 +287,9 @@ void init()
 	planeMesh.generateObjectBufferMesh(meshFiles[PLANE_MESH]);
 	planeMesh.loadTexture(textureFiles[PLANE_TEXTURE]);
 
+	//applyYaw(0.0f, upVector, forwardVector, leftVector);
+	//applyRoll(0.0f, upVector, forwardVector, leftVector);
+
 	/*groundMesh = Mesh(&shaderProgramID[BASIC_TEXTURE_SHADER]);
 	groundMesh.generateObjectBufferMesh(meshFiles[PLANE_MESH]);
 	groundMesh.loadTexture(textureFiles[1]);
@@ -216,6 +306,38 @@ void init()
 void pressNormalKeys(unsigned char key, int x, int y)
 {
 	keys[key] = true;
+	if (keys['q'])
+	{
+		yaw -= 90.0f;
+		applyYaw(radians(-90.0f), upVector, forwardVector, leftVector);
+	}
+	if (keys['w'])
+	{
+		yaw += 90.0f;
+		applyYaw(radians(90.0f), upVector, forwardVector, leftVector);
+	}
+	if (keys['a'])
+	{
+		yaw -= 90.0f;
+		applyRoll(radians(-90.0f), upVector, forwardVector, leftVector);
+	}
+	if (keys['s'])
+	{
+		yaw += 90.0f;
+		applyRoll(radians(90.0f), upVector, forwardVector, leftVector);
+	}
+	if (keys['f'])
+	{
+		cout << "Forward = " << forwardVector.v[0] << ", " << forwardVector.v[1] << ", " << forwardVector.v[2] << endl;
+	}
+	if (keys['g'])
+	{
+		cout << "Left = " << leftVector.v[0] << ", " << leftVector.v[1] << ", " << leftVector.v[2] << endl;
+	}
+	if (keys['h'])
+	{
+		cout << "Up = " << upVector.v[0] << ", " << upVector.v[1] << ", " << upVector.v[2] << endl;
+	}
 }
 
 void releaseNormalKeys(unsigned char key, int x, int y)
