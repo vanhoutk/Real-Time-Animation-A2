@@ -31,6 +31,7 @@ using namespace std;
 #define NUM_TEXTURES 1
 
 bool firstMouse = true;
+bool firstPerson = false;
 bool keys[1024];
 Camera camera(vec3(-1.5f, 2.0f, 7.5f));
 enum Meshes { PLANE_MESH };
@@ -169,7 +170,7 @@ vec3 matbyvec(mat3 matrix, vec3 vector)
 	return result;
 }
 
-void applyYaw(GLfloat yawR, vec3 &up, vec3 &forward, vec3 &left)
+void applyYaw(GLfloat yawR/*, vec3 &up, vec3 &forward, vec3 &left*/)
 {
 	/*cout << "Yaw in degrees: " << yaw << endl;
 	cout << "Yaw in radians: " << yawR << endl;
@@ -189,6 +190,7 @@ void applyYaw(GLfloat yawR, vec3 &up, vec3 &forward, vec3 &left)
 	// Also re-calculate the Right and Up vector
 	left = normalise(cross(forward, up));
 	return;*/
+
 
 	versor quat = quat_from_axis_rad(yawR, upV.v[0], upV.v[1], upV.v[2]);
 	mult_quat_quat(orientation, quat, orientation);
@@ -285,10 +287,21 @@ void display()
 	glClearColor(5.0f / 255.0f, 1.0f / 255.0f, 15.0f / 255.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	mat4 view = identity_mat4();
+
 	// Draw skybox first
 	//mat4 view = camera.GetViewMatrix(); 
-	mat4 view = look_at(camera.Position, vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-	//mat4 view = look_at(origin, forwardVector, upVector);
+	if(!firstPerson)
+		view = look_at(camera.Position, vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+	else
+	{
+		view = look_at(origin, origin - fV, upV);
+		view = translate(view, vec3(0.0f, 1.0f, 0.0f));
+	}
+	//mat4 view2 = identity_mat4();
+	//view2 = rotationMat * view2;
+	
+	
 	mat4 projection = perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
 
 	skyboxMesh.drawSkybox(view, projection);
@@ -323,12 +336,12 @@ void processInput()
 	if (keys['q'])
 	{
 		yaw -= 1.0f;
-		applyYaw(radians(-1.0f), upVector, forwardVector, leftVector);
+		applyYaw(radians(-1.0f)/*, upVector, forwardVector, leftVector*/);
 	}
 	if (keys['w'])
 	{
 		yaw += 1.0f;
-		applyYaw(radians(1.0f), upVector, forwardVector, leftVector);
+		applyYaw(radians(1.0f)/*, upVector, forwardVector, leftVector*/);
 	}
 	if (keys['a'])
 	{
@@ -376,8 +389,9 @@ void init()
 	mat4 R;
 	// make a quaternion representing negated initial camera orientation
 	float quaternion[4];
-	orientation = quat_from_axis_deg(0.0f, upV.v[0], upV.v[1], upV.v[2]);
+	orientation = quat_from_axis_deg(-90.0f, rightV.v[0], rightV.v[1], rightV.v[2]);
 	rotationMat = quat_to_mat4(orientation);
+	applyYaw(0.0f);
 
 	// Compile the shaders
 	for (int i = 0; i < NUM_SHADERS; i++)
@@ -434,6 +448,14 @@ void pressNormalKeys(unsigned char key, int x, int y)
 		pitch += 90.0f;
 		applyPitch(radians(90.0f), upVector, forwardVector, leftVector);
 	}*/
+	if (keys['1'])
+	{
+		firstPerson = true;
+	}
+	if (keys['2'])
+	{
+		firstPerson = false;
+	}
 	if (keys['f'])
 	{
 		cout << "Forward = " << forwardVector.v[0] << ", " << forwardVector.v[1] << ", " << forwardVector.v[2] << endl;
