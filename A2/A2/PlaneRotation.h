@@ -32,9 +32,9 @@ mat4 getRotationMatrix(GLfloat yawR, GLfloat pitchR, GLfloat rollR, vec4 &fV, ve
 	rotationMatrix.m[9] = (sin(yawR) * sin(pitchR) * cos(rollR)) - (cos(yawR) * sin(rollR));
 	rotationMatrix.m[10] = cos(pitchR) * cos(rollR);
 
-	fV = rotationMatrix * vec4(0.0f, 1.0f, 0.0f, 0.0f);
-	rightV = rotationMatrix * vec4(1.0f, 0.0f, 0.0f, 0.0f);
-	upV = rotationMatrix * vec4(0.0f, 0.0f, 1.0f, 0.0f);
+	fV = rotate_x_deg(rotationMatrix, -90.0f) * vec4(0.0f, 1.0f, 0.0f, 0.0f);
+	rightV = rotate_x_deg(rotationMatrix, -90.0f) * vec4(1.0f, 0.0f, 0.0f, 0.0f);
+	upV = rotate_x_deg(rotationMatrix, -90.0f) * vec4(0.0f, 0.0f, 1.0f, 0.0f);
 
 	return rotationMatrix;
 }
