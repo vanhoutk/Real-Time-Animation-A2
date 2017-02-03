@@ -165,7 +165,9 @@
   <ItemGroup>
     <ClInclude Include="Antons_maths_funcs.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="MeshOld.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Model.h" />
     <ClInclude Include="PlaneRotation.h" />
     <ClInclude Include="Shader_Functions.h" />
     <ClInclude Include="stb_image.h" />

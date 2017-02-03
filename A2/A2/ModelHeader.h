@@ -22,17 +22,16 @@
 
 using namespace std;
 
-GLint loadTexture(const char* fileName, string directory);
-
 class Model {
 public:
 	Model();
-	Model(GLuint* shaderID, const char* fileName);
+	Model(GLuint* shaderID, const char* fileName, const char* texturePath);
 	void drawModel(mat4 view, mat4 projection, mat4 model, vec4 colour);
 
 private:
 	GLuint shaderProgramID;
 	string directory = "../Textures/";
+	string texturePath;
 	vector<Mesh> meshes;
 	vector<Texture> textures_loaded;
 
@@ -41,14 +40,16 @@ private:
 	void processNode(aiNode* node, const aiScene* scene);
 	Mesh processMesh(aiMesh* mesh, const aiScene* scene);
 	vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, string typeName);
+	GLint loadTexture(const char* fileName, string directory);
 };
 
 Model::Model()
 {}
 
-Model::Model(GLuint* shaderID, const char* fileName)
+Model::Model(GLuint* shaderID, const char* fileName, const char* texturePath = "")
 {
 	shaderProgramID = *shaderID;
+	this->texturePath = texturePath;
 	this->loadModel(fileName);
 }
 
@@ -195,11 +196,16 @@ vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type,
 	return textures;
 }
 
-GLint loadTexture(const char* fileName, string directory)
+GLint Model::loadTexture(const char* fileName, string directory)
 {
 	GLuint textureID;
 	string filename = string(fileName);
 	filename = directory + fileName;
+
+	if (this->texturePath != "")
+	{
+		filename = texturePath;
+	}
 
 	// Load texture data
 	int width, height, n;

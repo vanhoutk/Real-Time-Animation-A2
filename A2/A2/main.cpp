@@ -15,7 +15,9 @@
 
 #include "Antons_maths_funcs.h" // Anton's maths functions
 #include "Camera.h"
+//#include "Mesh.h"
 #include "Mesh.h"
+#include "Model.h"
 #include "PlaneRotation.h"
 #include "Shader_Functions.h"
 #include "time.h"
@@ -42,7 +44,8 @@ GLfloat yaw = 0.0f, pitch = 0.0f, roll = 0.0f;
 GLuint shaderProgramID[NUM_SHADERS];
 int screenWidth = 1000;
 int screenHeight = 800;
-Mesh skyboxMesh, planeMesh;
+Mesh skyboxMesh;// , planeMesh;
+Model planeModel;
 vec4 upV = vec4(0.0f, 0.0f, 1.0f, 0.0f); //Up and Forward are flipped because of the initial rotation of the model
 vec4 fV = vec4(0.0f, 1.0f, 0.0f, 0.0f);
 vec4 rightV = vec4(1.0f, 0.0f, 0.0f, 0.0f);
@@ -102,7 +105,7 @@ void display()
 	skyboxMesh.drawSkybox(view, projection);
 	
 	// Draw the plane
-	planeMesh.drawMesh(view, projection, model);
+	planeModel.drawModel(view, projection, model);
 
 	glutSwapBuffers();
 }
@@ -175,9 +178,10 @@ void init()
 	skyboxMesh = Mesh(&shaderProgramID[SKYBOX]);
 	skyboxMesh.setupSkybox(skyboxTextureFiles);
 
-	planeMesh = Mesh(&shaderProgramID[BASIC_TEXTURE_SHADER]);
-	planeMesh.generateObjectBufferMesh(meshFiles[PLANE_MESH]);
-	planeMesh.loadTexture(textureFiles[PLANE_TEXTURE]);
+	planeModel = Model(&shaderProgramID[BASIC_TEXTURE_SHADER], meshFiles[PLANE_MESH], textureFiles[PLANE_TEXTURE]);
+	//planeMesh = Mesh(&shaderProgramID[BASIC_TEXTURE_SHADER]);
+	//planeMesh.generateObjectBufferMesh(meshFiles[PLANE_MESH]);
+	//planeMesh.loadTexture(textureFiles[PLANE_TEXTURE]);
 }
 
 /*

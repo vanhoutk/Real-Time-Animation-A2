@@ -29,13 +29,15 @@ public:
 
 	Mesh();
 	Mesh(GLuint* shaderID);
-	
+
 	// Mesh Functions
+	bool loadMesh(aiMesh* mesh, const aiScene* scene);
 	bool loadMesh(const char* fileName);
+	void generateObjectBufferMesh();
 	void generateObjectBufferMesh(const char* fileName);
 	bool loadTexture(const char* fileName);
 	void drawMesh(mat4 view, mat4 projection, mat4 model, vec4 colour);
-	
+
 	// Skybox functions
 	void setupSkybox(const char ** skyboxTextureFiles);
 	GLuint loadCubemap(vector<const GLchar*> faces);
@@ -47,7 +49,7 @@ private:
 	GLuint meshVAO;
 	GLuint meshVBO;
 	GLuint textureID;
-	
+
 	vector<float> normals;
 	vector<float> texture_coords;
 	vector<float> vertex_positions;
@@ -64,10 +66,49 @@ Mesh::Mesh(GLuint* shaderID)
 	shaderProgramID = *shaderID;
 }
 
+bool Mesh::loadMesh(aiMesh* mesh, const aiScene* scene)
+{
+	printf("    %i vertices in mesh\n", mesh->mNumVertices);
+
+	vertex_positions.clear();
+	normals.clear();
+	texture_coords.clear();
+
+	vertex_count = mesh->mNumVertices;
+
+	for (unsigned int v_i = 0; v_i < mesh->mNumVertices; v_i++) {
+		if (mesh->HasPositions()) {
+			const aiVector3D* vp = &(mesh->mVertices[v_i]);
+			//printf ("      vp %i (%f,%f,%f)\n", v_i, vp->x, vp->y, vp->z);
+			vertex_positions.push_back(vp->x);
+			vertex_positions.push_back(vp->y);
+			vertex_positions.push_back(vp->z);
+		}
+		if (mesh->HasNormals()) {
+			const aiVector3D* vn = &(mesh->mNormals[v_i]);
+			//printf ("      vn %i (%f,%f,%f)\n", v_i, vn->x, vn->y, vn->z);
+			normals.push_back(vn->x);
+			normals.push_back(vn->y);
+			normals.push_back(vn->z);
+		}
+		if (mesh->HasTextureCoords(0)) {
+			const aiVector3D* vt = &(mesh->mTextureCoords[0][v_i]);
+			//printf ("      vt %i (%f,%f)\n", v_i, vt->x, vt->y);
+			texture_coords.push_back(vt->x);
+			texture_coords.push_back(vt->y);
+		}
+		if (mesh->HasTangentsAndBitangents()) {
+			// NB: could store/print tangents here
+		}
+	}
+
+	return true;
+}
+
 bool Mesh::loadMesh(const char* fileName)
 {
 	const aiScene* scene = aiImportFile(fileName, aiProcess_Triangulate | aiProcess_CalcTangentSpace); // TRIANGLES!
-	//fprintf(stderr, "ERROR: reading mesh %s\n", fileName);
+																									   //fprintf(stderr, "ERROR: reading mesh %s\n", fileName);
 	if (!scene) {
 		fprintf(stderr, "ERROR: reading mesh %s\n", fileName);
 		return false;
@@ -121,7 +162,42 @@ bool Mesh::loadMesh(const char* fileName)
 	return true;
 }
 
-void Mesh::generateObjectBufferMesh(const char* fileName) 
+void Mesh::generateObjectBufferMesh()
+{
+	// Load mesh and copy into buffers
+	GLuint loc1 = glGetAttribLocation(shaderProgramID, "vertex_position");
+	GLuint loc2 = glGetAttribLocation(shaderProgramID, "vertex_normal");
+	GLuint loc3 = glGetAttribLocation(shaderProgramID, "vertex_texture");
+
+	unsigned int position_vbo = 0;
+	glGenBuffers(1, &position_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, position_vbo);
+	glBufferData(GL_ARRAY_BUFFER, vertex_count * 3 * sizeof(float), &vertex_positions[0], GL_STATIC_DRAW);
+	unsigned int normal_vbo = 0;
+	glGenBuffers(1, &normal_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, normal_vbo);
+	glBufferData(GL_ARRAY_BUFFER, vertex_count * 3 * sizeof(float), &normals[0], GL_STATIC_DRAW);
+	unsigned int texture_vbo = 0;
+	glGenBuffers(1, &texture_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, texture_vbo);
+	glBufferData(GL_ARRAY_BUFFER, vertex_count * 2 * sizeof(float), &texture_coords[0], GL_STATIC_DRAW);
+
+	glGenVertexArrays(1, &meshVAO);
+	glBindVertexArray(meshVAO);
+
+	glEnableVertexAttribArray(loc1);
+	glBindBuffer(GL_ARRAY_BUFFER, position_vbo);
+	glVertexAttribPointer(loc1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(loc2);
+	glBindBuffer(GL_ARRAY_BUFFER, normal_vbo);
+	glVertexAttribPointer(loc2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(loc3);
+	glBindBuffer(GL_ARRAY_BUFFER, texture_vbo);
+	glVertexAttribPointer(loc3, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+	glBindVertexArray(0);
+}
+
+void Mesh::generateObjectBufferMesh(const char* fileName)
 {
 	// Load mesh and copy into buffers
 	loadMesh(fileName);
