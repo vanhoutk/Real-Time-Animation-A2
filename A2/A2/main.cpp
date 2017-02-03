@@ -46,11 +46,11 @@ int screenWidth = 1000;
 int screenHeight = 800;
 Mesh skyboxMesh;// , planeMesh;
 Model planeModel;
-vec4 upV = vec4(0.0f, 0.0f, 1.0f, 0.0f); //Up and Forward are flipped because of the initial rotation of the model
-vec4 fV = vec4(0.0f, 1.0f, 0.0f, 0.0f);
+vec4 upV = vec4(0.0f, 1.0f, 0.0f, 0.0f);
+vec4 fV = vec4(0.0f, 0.0f, 1.0f, 0.0f);
 vec4 rightV = vec4(1.0f, 0.0f, 0.0f, 0.0f);
-vec4 eulerUpV = vec4(0.0f, 0.0f, 1.0f, 0.0f); //Up and Forward are flipped because of the initial rotation of the model
-vec4 eulerFV = vec4(0.0f, 1.0f, 0.0f, 0.0f);
+vec4 eulerUpV = vec4(0.0f, 1.0f, 0.0f, 0.0f); 
+vec4 eulerFV = vec4(0.0f, 0.0f, 1.0f, 0.0f);
 vec4 eulerRightV = vec4(1.0f, 0.0f, 0.0f, 0.0f);
 vec3 origin = vec3(0.0f, 0.0f, 0.0f);
 versor orientation;
@@ -58,7 +58,7 @@ mat4 rotationMat;
 //mat4 eulerRotationMat;
 
 // | Resource Locations
-const char * meshFiles[NUM_MESHES] = { "../Meshes/airplane3.dae" };
+const char * meshFiles[NUM_MESHES] = { "../Meshes/plane.obj" };
 const char * skyboxTextureFiles[6] = { "../Textures/TCWposx.png", "../Textures/TCWnegx.png", "../Textures/TCWposy.png", "../Textures/TCWnegy.png", "../Textures/TCWposz.png", "../Textures/TCWnegz.png" };
 const char * textureFiles[NUM_TEXTURES] = { "../Textures/plane.jpg" };
 
@@ -96,8 +96,8 @@ void display()
 		model = rotationMat;
 	else
 	{
-		model = rotate_x_deg(model, -90.0f);
-		model = model * getRotationMatrix(radians(yaw), radians(roll), radians(pitch), eulerFV, eulerRightV, eulerUpV);
+		//model = rotate_x_deg(model, -90.0f);
+		model = getRotationMatrix(radians(yaw), radians(roll), radians(pitch), eulerFV, eulerRightV, eulerUpV) * model;
 	}
 	//model = eulerRotationMat;
 
@@ -162,7 +162,7 @@ void updateScene()
 void init()
 {
 	// Initialise the orientation and rotation matrix (the initial rotation is due to the alignment of the model)
-	orientation = quat_from_axis_deg(-90.0f, rightV.v[0], rightV.v[1], rightV.v[2]);
+	orientation = quat_from_axis_deg(0.0f, rightV.v[0], rightV.v[1], rightV.v[2]);
 	rotationMat = quat_to_mat4(orientation);
 	applyYaw(0.0f, rotationMat, upV, fV, rightV, orientation);
 	//eulerRotationMat = identity_mat4();
